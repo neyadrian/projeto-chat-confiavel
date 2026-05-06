@@ -3,3 +3,6 @@ Qual porta VOCÊ quer usar? (ex: 5000): Qual a porta do DESTINO? (ex: 5001):
 [+] Nó iniciado! Você pode começar a digitar as mensagens.
 [+] Digite 'sair' para encerrar o chat.
 
+[SEND] Seq 0 | Janela atual: 1
+[ACK] Recebido ACK 0.
+[SEND] Seq 1 | Janela atual: 2
