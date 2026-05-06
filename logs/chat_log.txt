@@ -1,0 +1,5 @@
+=== Chat Selective Repeat (UDP) ===
+Qual porta VOCÊ quer usar? (ex: 5000): Qual a porta do DESTINO? (ex: 5001): 
+[+] Nó iniciado! Você pode começar a digitar as mensagens.
+[+] Digite 'sair' para encerrar o chat.
+

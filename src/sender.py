@@ -21,7 +21,7 @@ class Sender:
         
         self.lock = threading.Lock()
 
-    def send_mesage(self, payload: str):
+    def send_message(self, payload: str):
         with self.lock:
             self.message_queue.append(payload)
             self._try_send()
