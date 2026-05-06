@@ -20,3 +20,18 @@ class Sender:
         self.dup_ack_count = 0
         
         self.lock = threading.Lock()
+
+    def send_mesage(self, payload: str):
+        with self.lock:
+            self.message_queue.append(payload)
+            self._try_send()
+
+    def _try_send(self):
+        while self.message_queue and (self.next_seq < self.base_seq + int(self.window_size)):
+            payload = self.message_queue.pop(0)
+            packet = Packet(seq_num=self.next_seq, is_ack=False, payload=payload)
+            
+            self.packets[self.next_seq] = packet
+            self._send_and_start_timer(packet)
+            
+            self.next_seq += 1
