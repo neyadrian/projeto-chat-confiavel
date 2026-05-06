@@ -1,35 +1,50 @@
 import json
+import zlib
+
 
 class Packet:
-    def __init__(self, seq_num: int, is_ack: bool = False, payload: str = ""):
-        self.seq_num = seq_num
-        self.is_ack = is_ack
-        self.payload = payload
+    def __init__(self, pkt_type: str, seq: int, data: str = "", checksum: str = ""):
+        self.pkt_type = pkt_type
+        self.seq = seq
+        self.data = data
+        self.checksum = checksum
 
     def to_bytes(self) -> bytes:
-        packet_dict = {
-            "seq_num": self.seq_num,
-            "is_ack": self.is_ack,
-            "payload": self.payload
-        }
-        return json.dumps(packet_dict).encode('utf-8')
-    
+        raw = f"{self.pkt_type}:{self.seq}:{self.data}"
+        self.checksum = format(zlib.crc32(raw.encode("utf-8")) & 0xFFFFFFFF, "08x")
+        return json.dumps({
+            "type": self.pkt_type, "seq": self.seq,
+            "data": self.data, "checksum": self.checksum,
+        }).encode("utf-8")
+
     @staticmethod
-    def from_bytes(data: bytes):
+    def from_bytes(raw_bytes: bytes):
         try:
-            packet_dict = json.loads(data.decode('utf-8'))
-            return Packet(
-                seq_num = packet_dict["seq_num"],
-                is_ack = packet_dict["is_ack"],
-                payload = packet_dict.get("payload", "")
-            )
-        except json.JSONDecodeError:
-            print("Erro: Pacote corrompido recebido.")
+            d = json.loads(raw_bytes.decode("utf-8"))
+            pkt = Packet(d["type"], d["seq"], d.get("data", ""), d.get("checksum", ""))
+            raw = f"{pkt.pkt_type}:{pkt.seq}:{pkt.data}"
+            expected = format(zlib.crc32(raw.encode("utf-8")) & 0xFFFFFFFF, "08x")
+            return pkt if pkt.checksum == expected else None
+        except (json.JSONDecodeError, KeyError, UnicodeDecodeError):
             return None
-        except KeyError as e:
-            print(f"Erro: Pacote mal formatado, faltando chave {e}")
-            return None
-        
-    def __str__(self):
-        tipo = "ACK" if self.is_ack else "DATA"
-        return f"[{tipo} | Seq: {self.seq_num} | Payload: '{self.payload}']"
+
+    @staticmethod
+    def make_data(seq: int, data: str) -> "Packet":
+        return Packet("DATA", seq, data)
+
+    @staticmethod
+    def make_ack(seq: int) -> "Packet":
+        return Packet("ACK", seq)
+
+    @property
+    def is_ack(self) -> bool:
+        return self.pkt_type == "ACK"
+
+    @property
+    def is_data(self) -> bool:
+        return self.pkt_type == "DATA"
+
+    def __repr__(self):
+        if self.is_ack:
+            return f"[ACK seq={self.seq}]"
+        return f"[DATA seq={self.seq} | '{self.data[:30]}']"
