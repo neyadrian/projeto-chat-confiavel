@@ -48,3 +48,44 @@ class Sender:
         timer = threading.Timer(self.timeout, self._handle_timeout, args=(packet.seq_num,))
         self.timers[packet.seq_num] = timer
         timer.start()
+
+    def _handle_timeout(self, seq_num: int):
+        with self.lock:
+            if seq_num in self.acked:
+                return  
+            
+            print(f"[TIMEOUT] Pacote Seq {seq_num} perdido!")
+            self._apply_congestion_penalty()
+            
+            packet = self.packets[seq_num]
+            self._send_and_start_timer(packet, is_retransmit=True)
+
+    def process_ack(self, ack_seq: int):
+        with self.lock:
+            if ack_seq == self.last_ack_received:
+                self.dup_ack_count += 1
+                if self.dup_ack_count == 3:
+                    print(f"[FAST RETRANSMIT] 3 ACKs duplicados para Seq {ack_seq}. Retransmitindo base ({self.base_seq})!")
+                    self._apply_congestion_penalty()
+                    if self.base_seq in self.packets and self.base_seq not in self.acked:
+                        self._send_and_start_timer(self.packets[self.base_seq], is_retransmit=True)
+                    self.dup_ack_count = 0 
+            else:
+                self.last_ack_received = ack_seq
+                self.dup_ack_count = 1
+
+            if ack_seq in self.acked or ack_seq < self.base_seq:
+                return
+
+            print(f"[ACK] Recebido ACK {ack_seq}.")
+            self.acked.add(ack_seq)
+            
+            if ack_seq in self.timers:
+                self.timers[ack_seq].cancel()
+                del self.timers[ack_seq]
+
+            if self.window_size < self.max_window:
+                self.window_size += 1
+
+            if ack_seq == self.base_seq:
+                self._slide_window()
