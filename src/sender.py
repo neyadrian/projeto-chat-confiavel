@@ -35,3 +35,16 @@ class Sender:
             self._send_and_start_timer(packet)
             
             self.next_seq += 1
+
+    def _send_and_start_timer(self, packet: Packet, is_retransmit: bool = False):
+        tag = "[RETRANSMIT]" if is_retransmit else "[SEND]"
+        print(f"{tag} Seq {packet.seq_num} | Janela atual: {int(self.window_size)}")
+        
+        self.send_packet_callback(packet.to_bytes())
+        
+        if packet.seq_num in self.timers:
+            self.timers[packet.seq_num].cancel()
+            
+        timer = threading.Timer(self.timeout, self._handle_timeout, args=(packet.seq_num,))
+        self.timers[packet.seq_num] = timer
+        timer.start()
