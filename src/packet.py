@@ -30,4 +30,6 @@ class Packet:
             print(f"Erro: Pacote mal formatado, faltando chave {e}")
             return None
         
-    
+    def __str__(self):
+        tipo = "ACK" if self.is_ack else "DATA"
+        return f"[{tipo} | Seq: {self.seq_num} | Payload: '{self.payload}']"
