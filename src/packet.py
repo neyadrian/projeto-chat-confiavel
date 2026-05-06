@@ -26,4 +26,8 @@ class Packet:
         except json.JSONDecodeError:
             print("Erro: Pacote corrompido recebido.")
             return None
-        except
+        except KeyError as e:
+            print(f"Erro: Pacote mal formatado, faltando chave {e}")
+            return None
+        
+    
