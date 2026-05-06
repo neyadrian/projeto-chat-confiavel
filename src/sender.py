@@ -89,3 +89,17 @@ class Sender:
 
             if ack_seq == self.base_seq:
                 self._slide_window()
+
+    def _slide_window(self):
+        while self.base_seq in self.acked:
+            self.acked.remove(self.base_seq)
+            if self.base_seq in self.packets:
+                del self.packets[self.base_seq]
+                
+            self.base_seq += 1
+            
+        self._try_send()
+
+    def _apply_congestion_penalty(self):
+        self.window_size = max(1, self.window_size // 2)
+        print(f"[CONGESTION] Janela reduzida para {self.window_size}")
